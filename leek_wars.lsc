@@ -1,0 +1,126 @@
+// Définition des variables globales
+
+global enemiesInfo = [];				// Tableau d'informations des ennemis
+global weaponDamage = [];				// Table des dommages moyens des armes
+
+// Dommage moyen des armes jusqu'à 7
+weaponDamage[1] = 17;
+weaponDamage[2] = 22;
+weaponDamage[3] = 21;
+weaponDamage[4] = 38;
+weaponDamage[5] = 32;
+weaponDamage[6] = 51;
+weaponDamage[7] = 49;
+
+///////////////////////////////////////////////////////////////////////////
+///////																                              ///////
+///////					            	Helpers functions						          ///////
+///////															                              	///////
+///////////////////////////////////////////////////////////////////////////
+
+			////////////////////////////////////////////////////////
+			///////										                       ///////
+			///////			      	Weapons Functions		 	       ///////
+			///////											                     ///////
+			////////////////////////////////////////////////////////
+
+// Fonction qui permet de retourner le dommage moyen d'une arme
+function getWeaponDamage(weapon) {
+	return(weaponDamage[weapon]);
+}
+
+			////////////////////////////////////////////////////////
+			///////										                       ///////
+			///////			      Enemies Info Functions			   ///////
+			///////											                     ///////
+			////////////////////////////////////////////////////////
+
+// Fonction qui permet de construire le tableau des informations concernant les ennemis
+function getEnemiesAllInfo() {
+	for (var enemy in getAliveEnemies()) {
+		enemiesInfo[enemy] = [];
+		enemiesInfo[enemy]["ID"]=enemy;
+		enemiesInfo[enemy]["TOTAL_LIFE"]=getTotalLife(enemy);
+		enemiesInfo[enemy]["LIFE"]=getLife(enemy);
+		enemiesInfo[enemy]["RELATIVE_SHIELD"]=getRelativeShield(enemy);
+		enemiesInfo[enemy]["ABSOLUTE_SHIELD"]=getAbsoluteShield(enemy);
+		enemiesInfo[enemy]["DISTANCE"]=getCellDistance(getCell(),getCell(enemy));
+	}
+} 
+
+// Fonction qui permet de récupérer l'information de type "type" pour tous les ennemis
+// Ex : getEnemiesInfo("LIFE")
+function getEnemiesInfo(type) {
+	var enemyInfoType = [];
+	for (var enemy in enemiesInfo) {
+		enemyInfoType[enemy["ID"]]=enemy[type];
+	}
+	return(enemyInfoType);
+
+}
+
+// Fonction qui retourne un des ennemis le plus faible en terme de vie
+function getWeakestEnemy() {
+	var lifeTable = getEnemiesInfo("LIFE");
+	return(search(lifeTable,arrayMin(lifeTable)));
+}
+
+// Fonction qui retourne un des ennemi le plus fort en terme de vie
+function getStrongestEnemy() {
+	var lifeTable = getEnemiesInfo("LIFE");
+	return(search(lifeTable,arrayMax(lifeTable)));
+}
+
+// Fonction qui retourne un tableau d'ennemis non protégés
+function getUnprotectedEnemies() {
+	var unprotectedEnemies = [];
+	var relativeShieldTable = getEnemiesInfo("RELATIVE_SHIELD");
+	var absoluteShieldTable = getEnemiesInfo("ABSOLUTE_SHIELD");
+
+	for (var leekId : var shieldValue in relativeShieldTable) {
+		if (relativeShieldTable[leekId]==0 && absoluteShieldTable[leekId] == 0 ) push(unprotectedEnemies,leekId);
+	}
+	return(unprotectedEnemies);
+}
+
+// Fonction qui retourne un tableau des ennemis proches de la mort
+// en fonction d'une arme "withWeapon" et du nombre de tirs que l'on va pouvoir effectuer
+// TODO : Prendre en compte les armures potentielles des ennemis
+function getEnemiesAboutToDie(withWeapon) {
+	var enemiesAboutToDie=[];
+	var lifeTable = getEnemiesInfo("LIFE");
+	for (var leekId : var lifeValue in lifeTable) {
+		if (getWeaponDamage(withWeapon) * (1 + getForce() / 100) * floor(getTP()/getWeaponCost(withWeapon)) > getLife(leekId)) push(enemiesAboutToDie,leekId);
+	}
+	return(enemiesAboutToDie);	
+}
+
+// Fonction qui retourne un tableau d'ennemi que l'on peut shooter
+function getShootableEnemies() {
+
+}
+
+			////////////////////////////////////////////////////////
+			///////										                       ///////
+			///////				      Action Functions			       ///////
+			///////											                     ///////
+			////////////////////////////////////////////////////////
+
+// Fonction essentielle qui devra permettre de déterminer l'action à faire 
+// en fonction de la situation
+function chooseAction() {
+
+}
+
+// Fonction qui permet d'exécuter l'action "action"
+// Utilisation chip sur leek ou alliés
+// Mouvement
+// Tir
+// ....
+function doAction(action) {
+
+}
+
+// On rafraichit le tableau d'infos de tous les ennemis
+getEnemiesAllInfo();
+

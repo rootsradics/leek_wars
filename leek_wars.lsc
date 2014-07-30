@@ -1,7 +1,19 @@
-// Définition des variables globales
+///////////////////////////////////////////////////////////////////////////
+///////																///////
+///////						Globals definition						///////
+///////																///////
+///////////////////////////////////////////////////////////////////////////
 
 global enemiesInfo = [];				// Tableau d'informations des ennemis
-global weaponDamage = [];				// Table des dommages moyens des armes
+global alliesInfo  = [];				// Tableau d'informations des alliés
+global weaponDamage = [];				// Tableau des dommages moyens des armes
+global lastEnemiesLife = [];			// Tableau de vie des ennemis durant le dernier tour
+
+// Valeur moyenne pour certains des chips
+
+global CHIP_BANDAGE_VALUE = 13;
+global CHIP_CURE_VALUE = 39;
+
 
 // Dommage moyen des armes jusqu'à 7
 weaponDamage[1] = 17;
@@ -17,6 +29,10 @@ weaponDamage[7] = 49;
 ///////						Helpers functions						///////
 ///////																///////
 ///////////////////////////////////////////////////////////////////////////
+
+function isStretchingOn(leek) {
+	return(getEnemyInfoFor(leek,"BASE_AGILITY")!=getEnemyInfoFor(leek,"AGILITY"));
+}
 
 			////////////////////////////////////////////////////////
 			///////										     ///////
@@ -42,9 +58,15 @@ function getEnemiesAllInfo() {
 		enemiesInfo[enemy]["ID"]=enemy;
 		enemiesInfo[enemy]["TOTAL_LIFE"]=getTotalLife(enemy);
 		enemiesInfo[enemy]["LIFE"]=getLife(enemy);
+		if (getTurn() == 1) enemiesInfo[enemy]["BASE_FORCE"]=getForce(enemy);
+		if (getTurn() == 1) enemiesInfo[enemy]["BASE_AGILITY"]=getAgility(enemy);
+		enemiesInfo[enemy]["FORCE"]=getForce(enemy);
+		enemiesInfo[enemy]["AGILITY"]=getAgility(enemy);
+		if (getTurn() == 1) enemiesInfo[enemy]["LAST_LIFE"]=getLife(enemy);
 		enemiesInfo[enemy]["RELATIVE_SHIELD"]=getRelativeShield(enemy);
 		enemiesInfo[enemy]["ABSOLUTE_SHIELD"]=getAbsoluteShield(enemy);
 		enemiesInfo[enemy]["DISTANCE"]=getCellDistance(getCell(),getCell(enemy));
+		enemiesInfo[enemy]["LIFE"] == enemiesInfo[enemy]["LAST_LIFE"] ? enemiesInfo[enemy]["HAVE_BEEN_ATTACKED"]=0 : enemiesInfo[enemy]["HAVE_BEEN_ATTACKED"]=1;
 	}
 } 
 
@@ -56,7 +78,14 @@ function getEnemiesInfo(type) {
 		enemyInfoType[enemy["ID"]]=enemy[type];
 	}
 	return(enemyInfoType);
+}
 
+// Fonction qui permet de récupérer l'information de type "type" pour un ennemi donné
+// Ex : getEnemiesInfo("LIFE")
+function getEnemyInfoFor(leekId,type) {
+	for (var enemy in enemiesInfo) {
+		if (enemy["ID"] == leekId) return(enemy[type]);
+	}
 }
 
 // Fonction qui retourne un des ennemis le plus faible en terme de vie
@@ -65,7 +94,7 @@ function getWeakestEnemy() {
 	return(search(lifeTable,arrayMin(lifeTable)));
 }
 
-// Fonction qui retourne un des ennemi le plus fort en terme de vie
+// Fonction qui retourne un des ennemis le plus fort en terme de vie
 function getStrongestEnemy() {
 	var lifeTable = getEnemiesInfo("LIFE");
 	return(search(lifeTable,arrayMax(lifeTable)));
@@ -78,7 +107,7 @@ function getUnprotectedEnemies() {
 	var absoluteShieldTable = getEnemiesInfo("ABSOLUTE_SHIELD");
 
 	for (var leekId : var shieldValue in relativeShieldTable) {
-		if (relativeShieldTable[leekId]==0 && absoluteShieldTable[leekId] == 0 ) push(unprotectedEnemies,leekId);
+		if (relativeShieldTable[leekId] ==0 && absoluteShieldTable[leekId] == 0 ) push(unprotectedEnemies,leekId);
 	}
 	return(unprotectedEnemies);
 }
@@ -102,14 +131,88 @@ function getShootableEnemies() {
 
 			////////////////////////////////////////////////////////
 			///////										     ///////
+			///////			Allies Info Functions			 ///////
+			///////											 ///////
+			////////////////////////////////////////////////////////
+			
+function getAlliesAllInfo() {	
+	for (var ally in getAliveAllies()) {
+		alliesInfo[ally] = [];
+		alliesInfo[ally]["ID"]=ally;
+		alliesInfo[ally]["TOTAL_LIFE"]=getTotalLife(ally);
+		alliesInfo[ally]["LIFE"]=getLife(ally);
+		if (getTurn() == 1) alliesInfo[ally]["BASE_FORCE"]=getForce(ally);
+		if (getTurn() == 1) alliesInfo[ally]["BASE_AGILITY"]=getAgility(ally);
+		if (getTurn() == 1) alliesInfo[ally]["LAST_LIFE"]=getLife(ally);
+		alliesInfo[ally]["RELATIVE_SHIELD"]=getRelativeShield(ally);
+		alliesInfo[ally]["ABSOLUTE_SHIELD"]=getAbsoluteShield(ally);
+		alliesInfo[ally]["DISTANCE"]=getCellDistance(getCell(),getCell(ally));
+		alliesInfo[ally]["LIFE"] == alliesInfo[ally]["LAST_LIFE"] ? alliesInfo[ally]["HAVE_BEEN_ATTACKED"]=0 : alliesInfo[ally]["HAVE_BEEN_ATTACKED"]=1;
+	}
+}
+
+// Fonction qui permet de récupérer l'information de type "type" pour tous les alliés
+// Ex : getAlliesInfo("LIFE")
+function getAlliesInfo(type) {
+	var alliesInfoType = [];
+	for (var ally in alliesInfo) {
+		alliesInfo[ally["ID"]]=ally[type];
+	}
+	return(alliesInfoType);
+}
+
+// Fonction qui retourne une liste des alliés qui devrait/pourrait être soigné
+function getAlliesToHeal() {
+	var lifeThreshold;
+	var alliesToHeal = [];
+	var lifeTable = getAlliesInfo("LIFE");
+	var totalLifeTable = getAlliesInfo("TOTAL_LIFE");
+	for (var leekId : var lifeValue in lifeTable) {
+			
+	if ( isStretchingOn(getLeek()) ) {
+		lifeThreshold = totalLifeTable[leekId] - CHIP_CURE_VALUE * ( 1 + ((getAgility()) / 100 ));
+	} else {
+		lifeThreshold = totalLifeTable[leekId] - CHIP_CURE_VALUE * ( 1 + ((getAgility() + 50) / 100 ));
+	}	
+	 
+	if (lifeValue < lifeThreshold ) push(alliesToHeal,leekId);
+	}
+	return(alliesToHeal);		
+}
+			
+
+			////////////////////////////////////////////////////////
+			///////										     ///////
 			///////				Action Functions			 ///////
 			///////											 ///////
 			////////////////////////////////////////////////////////
 
+
+// Fonction qui permet de tirer tant que l'on a des PT
+function shootAsMuchAsYouCan() {
+
+}
+
+function playChipOn(chip,leek) {
+
+}
+
 // Fonction essentielle qui devra permettre de déterminer l'action à faire 
 // en fonction de la situation
+// Liste des actions (définir un ordre de préférence):
+//			- Se soigner
+//			- Soigner un ami
+//			- Se protéger
+//			- Protéger un ami
+//			- Attaquer via un chip
+//			- Bouger
+//			- Tirer
+//			- Parler
+// Retourne une action à exécuter
 function chooseAction() {
-
+	if (getLife() < 10) {
+	
+	}
 }
 
 // Fonction qui permet d'exécuter l'action "action"
@@ -120,7 +223,27 @@ function chooseAction() {
 function doAction(action) {
 
 }
+			////////////////////////////////////////////////////////
+			///////										     ///////
+			///////				User own functions			 ///////
+			///////											 ///////
+			////////////////////////////////////////////////////////
+			
+
+
+///////////////////////////////////////////////////////////////////////////
+///////																///////
+///////					Main code starts here !						///////
+///////																///////
+///////////////////////////////////////////////////////////////////////////
+
+// On rafraichit le tableau d'infos de tous les alliés
+getAlliesAllInfo();
 
 // On rafraichit le tableau d'infos de tous les ennemis
 getEnemiesAllInfo();
+
+// On effectue l'action définie par la fonction chooseAction
+doAction(chooseAction());
+
 
